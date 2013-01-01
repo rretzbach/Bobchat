@@ -14,10 +14,10 @@ Setup
 Configuration
 =============
 
-1. Edit the IP address in index.html
+First edit the IP address in index.html
 
     var socket = io.connect('http://192.168.1.29');
     
-2. Edit the connection details in bobchat.js
+then edit the connection details in bobchat.js
 
     var client = new irc.Client(...
