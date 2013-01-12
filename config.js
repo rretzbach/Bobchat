@@ -11,4 +11,4 @@ var config = {
 	showDebugControls: false,
 	
 };
-module.exports.config = config;
+module.exports = config;
