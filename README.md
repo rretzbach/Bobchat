@@ -10,6 +10,12 @@ Setup
 
     npm install socket.io
     npm install irc
+	node bobchat.js
+	
+or optionally
+
+	npm install supervisor -g
+	supervisor -- bobchat.js mock
 
 Configuration
 =============

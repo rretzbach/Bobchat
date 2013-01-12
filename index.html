@@ -127,6 +127,9 @@
 			border-top-left-radius:1em;
 			border-top-right-radius:1em;
 		}
+		.greentext {
+			color: #789922;
+		}
 	</style>
 </head>
 
@@ -146,10 +149,27 @@
 		var base = 'bobchat-layout';
 		var id = dialog.attr('id');
 		var prefix = base + '-' + id + '-';
-		dialog.css('top', $.cookie(prefix + 'pos-top'));
-		dialog.css('left', $.cookie(prefix + 'pos-left'));
-		dialog.width($.cookie(prefix + 'size-width'));
-		dialog.height($.cookie(prefix + 'size-height'));
+		
+		var geometrics = {
+			postop: $.cookie(prefix + 'pos-top'),
+			posleft: $.cookie(prefix + 'pos-left'),
+			sizewidth: $.cookie(prefix + 'size-width'),
+			sizeheight: $.cookie(prefix + 'size-height'),
+		};
+		
+		if (geometrics.postop == null) {
+			geometrics = {
+				postop: 10,
+				posleft: 10,
+				sizewidth: 640,
+				sizeheight: 320,
+			};
+		}
+		
+		dialog.css('top', geometrics.postop);
+		dialog.css('left', geometrics.posleft);
+		dialog.width(geometrics.sizewidth);
+		dialog.height(geometrics.sizeheight);
 	}
 	
 	function createChatWindow(id, name, socket) {
@@ -189,6 +209,7 @@
 		});
 		
 		$('#tint').append(dialog);
+		
 		dialog.draggable({handle: '.chatwindow-title',
 			stop: function(event, ui){
 				storePositionSize(dialog);
@@ -245,6 +266,7 @@
 	
 	function renderMessage(message) {
 		if (message && message != null) {
+			// clickable links
 			var urlPattern = new RegExp('\\b(https?://[^\\s]+)', 'g');
 			var linkMatches = message.match(urlPattern);
 			for (var i = 0; i < (linkMatches != null ? linkMatches.length : 0); ++i) {
@@ -252,8 +274,12 @@
 				previewLink(link);
 			}
 			
-			return message.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
+			message = message.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
 			
+			// greentext
+			if (message.indexOf(">") == 0 && message.indexOf(">>") != 0) {
+				message = '<span class="greentext">' + message + '</span>';
+			}
 		}
 		return message;
 	}
@@ -271,7 +297,7 @@
 	}
 
 	$(document).ready(function() {
-		var socket = io.connect('http://192.168.1.29');
+		var socket = io.connect('http://' + location.host);
 		
 		createPreviewWindow('preview', 'Preview', socket);
 
@@ -288,7 +314,7 @@
 		});
 		
 		socket.on('pm', function (data) {
-			var dialog = getDialog(data.nick, socket);
+			var dialog = getDialog(data.target, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick"><%= nick %></td><td class="message"><%= message %></td></tr>'});
 			data.message = renderMessage(data.message);
 			dialog.find('.chatwindow-msgtable').append(template.render(data));
@@ -351,6 +377,10 @@
 		    var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<ul><% for (var key in nicks) { %><li class="nicklistitem"><%= nicks[key] + key %></li><% } %></ul>'});
 			dialog.find('.nicklistcontainer ul').replaceWith(template.render(data));
+		});
+		
+		socket.on('showdebugcontrols', function (data) {
+			$('.initially-hidden').css('display', 'inherit')
 		});
 		
 		var mockButton = $('<button class="initially-hidden">emit mock messages</button>');

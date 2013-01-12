@@ -3,6 +3,14 @@ function padStr(i) {
     return (i < 10) ? "0" + i : "" + i;
 }
 
+function getTime() {
+	var now = new Date();
+	var timestamp = padStr(now.getHours()) + ':' +
+			  padStr(now.getMinutes()) + ':' +
+			  padStr(now.getSeconds());
+	return timestamp;
+}
+
 // websocket
 function serve(req, res){
 var url = req.url;
@@ -27,8 +35,19 @@ var fs = require('fs');
 
 app.listen(8081);
 
-// irc
+// load config
+var config = require('./config');
 
+// mockmode is invoked when "mock" is passed as first argument
+if (process.argv[2] ==  'mock') {
+	console.log('Mock mode enabled');
+	config.autoConnect = false;
+	config.keepAlive = false;
+	config.showDebugControls = true;
+	config.sendMessages = false;
+}
+
+// irc
 function ClientMessage(name, options) {
 	this.name = name;
 	this.options = options;
@@ -39,30 +58,23 @@ var names = {};
 
 var irc = require('irc');
 
-var client = new irc.Client('irc.iz-smart.net', 'Ostwind', {
+var client = new irc.Client(config.network, config.nick, {
     debug: true,
-    channels: ['#teaparty', '#vegan'],
-	autoConnect: true,
-	username: 'Ostwind',
-	realName: 'Ostwind nodeJS IRC client',
-	password: '',
+    channels: config.channels,
+	autoConnect: config.autoConnect,
+	username: config.username,
+	realName: config.realName,
+	password: config.password,
 });
 
 // send a pong every 5min to cause a close connection event if no internet connectivity is available, which will trigger a reconnect
-setInterval(function(){client.send('PONG', 'empty');}, 5*60*1000);
+if (config.keepAlive) {
+	setInterval(function(){client.send('PONG', 'empty');}, 5*60*1000);
+}
 
 client.addListener('error', function(message) {
     console.log('error: ', message);
 });
-
-
-function getTime() {
-	var now = new Date();
-	var timestamp = padStr(now.getHours()) + ':' +
-			  padStr(now.getMinutes()) + ':' +
-			  padStr(now.getSeconds());
-	return timestamp;
-}
 
 function wiretapMessage(name, options, sockets) {
 	var msg = new ClientMessage(name, options);
@@ -125,7 +137,7 @@ function registerClientListener(client, sockets) {
 		}
 	});
 	autoRegister(sockets, client, 'pm', function (nick, text, message) {
-		wiretapMessage('pm', { nick: nick, timestamp: getTime(), message: text }, sockets);
+		wiretapMessage('pm', { nick: nick, target: nick, timestamp: getTime(), message: text }, sockets);
 	});
 	autoRegister(sockets, client, 'nick', function (oldnick, newnick, channels, message) {
 		for (var i = 0; i < channels.length; ++i) {
@@ -169,10 +181,33 @@ function mockAllMessages(client) {
 function resendPreviousMessages(socket) {
 	if (clientmessages && clientmessages.length != 0) {
 		console.log('resending previous messages');
+		socket.emit('resendmessages', {});
 		for (var i = 0; i < clientmessages.length; ++i) {
 			var msg = clientmessages[i];
 			socket.emit(msg.name, msg.options);
 		}
+	}
+}
+
+function executeCommand(name, args) {
+	if (name == 'msg') {
+		var target = args.match(/(\S+) (.+)/)[1];
+		var message = args.match(/(\S+) (.+)/)[2];
+		sendTextMessage(target, message);
+	}
+}
+
+function sendTextMessage(target, message) {
+	if (config.sendMessages) {
+		client.say(target, message);
+	}
+	
+	if (target.indexOf('#') == 0) {
+		// channel message
+		wiretapMessage('message#', { nick: client.nick, channel: target, timestamp: getTime(), message: message }, clientsockets);
+	} else {
+		// query message
+		wiretapMessage('pm', { nick: client.nick, target: target, timestamp: getTime(), message: message }, clientsockets);
 	}
 }
 
@@ -185,11 +220,32 @@ io.sockets.on('connection', function (socket) {
 	clientsockets.push(socket);
 	
 	resendPreviousMessages(socket);
+	
+	if (config.showDebugControls) {
+		socket.emit('showdebugcontrols', {});
+	}
 
 	socket.on('sendmessage', function (data) {
-		client.say(data.to, data.message);
-		// TODO could also be a privmsg or a command
-		wiretapMessage('message#', { nick: client.nick, channel: data.to, timestamp: getTime(), message: data.message }, clientsockets);
+		if (data.message.indexOf('/') == 0 && data.message.indexOf('//') != 0) {
+			// irc command
+			var command = data.message.match(/^\/(\w+)/)[1];
+			if (command) {
+				executeCommand(command, data.message.substr(1+command.length+1));
+			}
+		} else {
+			// text message
+			
+			if (data.message.indexOf('//') == 0) {
+				// escaped command
+				data.message = data.message.replace('/', '');
+			}
+			
+			sendTextMessage(data.to, data.message);
+		}		
+	});
+	
+	socket.on('clearlog', function (data) {
+		clientmessages = [];
 	});
 
 	// test only
