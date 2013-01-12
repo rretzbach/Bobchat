@@ -20,10 +20,4 @@ or optionally
 Configuration
 =============
 
-First edit the IP address in index.html
-
-    var socket = io.connect('http://192.168.1.29');
-    
-then edit the connection details in bobchat.js
-
-    var client = new irc.Client(...
+Edit config.js to set the connection details and runtime options.
