@@ -14,8 +14,8 @@ Setup
 	
 or optionally
 
-	npm install supervisor -g
-	supervisor -- bobchat.js mock
+    npm install supervisor -g
+    supervisor -- bobchat.js [mock]
 
 Configuration
 =============

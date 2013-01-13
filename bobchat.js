@@ -169,6 +169,8 @@ function mockAllMessages(client) {
 		client.emit('notice', 'baku', channel, 'text', 'message');
 		client.emit('nick', 'sister', 'sisterofmercy', [channel], 'message');
 		client.emit('message#', 'sisterofmercy', channel, 'text', 'message');
+		client.emit('join', channel, 'crd', 'message');
+		client.emit('message#', 'crd', channel, 'I am a <b>HUGE</b> fan of http://keichi.de/wp-content/uploads/2011/09/gg_puella_magi_madoka_magica_-_01_0557c1c6-mkv_snapshot_24-09_2011-01-07_21-48-31.jpg', 'message');
 	}
 	mockChannel('#bobchat');
 
@@ -194,6 +196,8 @@ function executeCommand(name, args) {
 		var target = args.match(/(\S+) (.+)/)[1];
 		var message = args.match(/(\S+) (.+)/)[2];
 		sendTextMessage(target, message);
+	} else {
+		console.log('unknown command: ' + name + ' with args: ' + JSON.stringify(args));
 	}
 }
 

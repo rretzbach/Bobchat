@@ -266,6 +266,9 @@
 	
 	function renderMessage(message) {
 		if (message && message != null) {
+			// replace angle brackets
+			message = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+		
 			// clickable links
 			var urlPattern = new RegExp('\\b(https?://[^\\s]+)', 'g');
 			var linkMatches = message.match(urlPattern);
