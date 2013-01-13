@@ -254,8 +254,6 @@
 	function scrollDown(dialog) {
 		var container = dialog.find('.chatwindow-msgtable-container');
 		container.scrollTop(container[0].scrollHeight);
-		
-		//container.animate({scrollTop: container.prop("scrollHeight")}, 500);
 	}
 	
 	function previewLink(link) {
@@ -304,13 +302,21 @@
 		
 		createPreviewWindow('preview', 'Preview', socket);
 
-		socket.on('registered', function (data) {
-			nick = data.nick;
+		socket.on('resendmessages', function (data) {
+			// TODO clear all previous messages
 		});
 
 		socket.on('message#', function (data) {
 			var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick"><%= nick %></td><td class="message"><%= message %></td></tr>'});
+			data.message = renderMessage(data.message);
+			dialog.find('.chatwindow-msgtable').append(template.render(data));			
+			scrollDown(dialog);
+		});
+		
+		socket.on('action', function (data) {
+			var dialog = getDialog(data.to, socket);
+			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= nick %> <%= message %></td></tr>'});
 			data.message = renderMessage(data.message);
 			dialog.find('.chatwindow-msgtable').append(template.render(data));			
 			scrollDown(dialog);

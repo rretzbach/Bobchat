@@ -76,6 +76,7 @@ client.addListener('error', function(message) {
     console.log('error: ', message);
 });
 
+// name is the bobchat event name
 function wiretapMessage(name, options, sockets) {
 	var msg = new ClientMessage(name, options);
 
@@ -90,6 +91,7 @@ function wiretapMessage(name, options, sockets) {
 	}
 }
 
+// name is the node-irc event name
 function autoRegister(sockets, client, name, callback) {
 	client.addListener(name, callback);
 }
@@ -153,6 +155,13 @@ function registerClientListener(client, sockets) {
 	autoRegister(sockets, client, 'whois', function (info) {
 		wiretapMessage('whois', { info: info }, sockets);
 	});
+	
+	autoRegister(sockets, client, 'raw', function (message) {
+		var match = message.args[1].match(/^\u0001ACTION (.+)\u0001$/);
+		if (match) {
+			wiretapMessage('action', { nick: message.nick, to: message.args[0], timestamp: getTime(),message: match[1] }, sockets);
+		}
+	});
 }
 
 function mockAllMessages(client) {
@@ -168,16 +177,22 @@ function mockAllMessages(client) {
 		client.emit('quit', 'crd', 'reason', [channel], 'message');
 		client.emit('notice', 'baku', channel, 'text', 'message');
 		client.emit('nick', 'sister', 'sisterofmercy', [channel], 'message');
-		client.emit('message#', 'sisterofmercy', channel, 'text', 'message');
-		client.emit('join', channel, 'crd', 'message');
-		client.emit('message#', 'crd', channel, 'I am a <b>HUGE</b> fan of http://keichi.de/wp-content/uploads/2011/09/gg_puella_magi_madoka_magica_-_01_0557c1c6-mkv_snapshot_24-09_2011-01-07_21-48-31.jpg', 'message');
+		client.emit('message#', 'sisterofmercy', channel, 'text <b>text</b> text http://text.de.vu/path/file.jpg', 'message', 'message');
+		client.emit('raw', { prefix: 'sisterofmercy!sisterofmercy@sisterofmercy.users.network.net',
+			nick: 'sisterofmercy',
+			user: 'sisterofmercy',
+			host: 'sisterofmercy.users.network.net',
+			command: 'PRIVMSG',
+			rawCommand: 'PRIVMSG',
+			commandType: 'normal',
+			args: [ channel, '\u0001ACTION action\u0001' ] }
+		);
 	}
 	mockChannel('#bobchat');
 
 	client.emit('notice', 'baku', 'osti', 'text', 'message');
 	client.emit('pm', 'baku', 'text', 'message');
 	client.emit('nick', 'baku', 'afku', [], 'message');
-	//client.emit('whois', { info: info });
 }
 
 function resendPreviousMessages(socket) {
