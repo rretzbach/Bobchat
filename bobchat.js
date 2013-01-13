@@ -157,9 +157,11 @@ function registerClientListener(client, sockets) {
 	});
 	
 	autoRegister(sockets, client, 'raw', function (message) {
-		var match = message.args[1].match(/^\u0001ACTION (.+)\u0001$/);
-		if (match) {
-			wiretapMessage('action', { nick: message.nick, to: message.args[0], timestamp: getTime(),message: match[1] }, sockets);
+                if (message.args[1]) {
+			var match = message.args[1].match(/^\u0001ACTION (.+)\u0001$/);
+			if (match) {
+				wiretapMessage('action', { nick: message.nick, to: message.args[0], timestamp: getTime(),message: match[1] }, sockets);
+			}
 		}
 	});
 }
