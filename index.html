@@ -411,7 +411,6 @@
 				var emoticon = emoticonRegistry.emoticonMap[unescapeHTML(word)];
 				if (emoticon) {
 					words[i] = '<img src="emoticons/' + emoticon.image + '">';
-					break;
 				}
 			}
 			messageSafe = words.join(' ');

@@ -16,7 +16,6 @@ function EmoticonRegistry() {
 
 var emoticonRegistry = new EmoticonRegistry();
 emoticonRegistry.add(new Emoticon('*flausch*', ['*flausch*',':glitter',':fluff'], 'red_unicorn_glitter.gif'));
-
 emoticonRegistry.add(new Emoticon(':runicorn', [':runicorn', ':runicorn:'], 'red_unicorn.gif'));
 emoticonRegistry.add(new Emoticon(':bunicorn', [':bunicorn', ':bunicorn:'], 'blue_unicorn.gif'));
 emoticonRegistry.add(new Emoticon(':shun', [':shun',':shun:'], 'blue_unicorn_shun.gif'));
@@ -43,7 +42,7 @@ emoticonRegistry.add(new Emoticon('D:', ['D:','DD:','DDD:','DDDD:'], 'fluffy_emo
 emoticonRegistry.add(new Emoticon(':O', [':o',':O'], 'fluffy_emoticons_surprise.gif'));
 emoticonRegistry.add(new Emoticon('O_o', ['O_o','o_O','O_O','o_o'], 'fluffy_emoticons_weird.gif'));
 emoticonRegistry.add(new Emoticon(':omg:', ['omg',':omg',':omg:'], 'fluffy_emoticons_omg.gif'));
-emoticonRegistry.add(new Emoticon(':P', [':P'], 'fluffy_emoticons_tongue.gif'));
+emoticonRegistry.add(new Emoticon(':P', [':P', ':p'], 'fluffy_emoticons_tongue.gif'));
 emoticonRegistry.add(new Emoticon(':rolleyes:', [':rolleyes',':rolleyes:'], 'fluffy_emoticons_rolleyes.gif'));
 emoticonRegistry.add(new Emoticon(':suizid:', [':suizid',':suicide',':suizid:',':suicide:'], 'fluffy_emoticons_suizid.gif'));
 emoticonRegistry.add(new Emoticon(":')", [":')"], 'fluffy_emoticons_happytears.gif'));
