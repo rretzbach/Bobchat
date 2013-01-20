@@ -225,6 +225,7 @@
 				'</div>'+
 			'</div>');
 			
+			var that = this;
 			this.nicklist = this.element.find('.nicklistcontainer ul');
 			this.messageTableContainer = this.element.find('.chatwindow-msgtable-container');
 			this.msgTableElement = this.element.find('.chatwindow-msgtable');
@@ -232,18 +233,18 @@
 			this.inputElement = this.element.find('input');
 			
 			this.inputElement.find('button').click(function(){
-				this.sendText();
+				that.sendText();
 			});
 			
 			this.inputElement.keyup(function(event) {
 				if (event.keyCode==13) {
-					this.sendText();
+					that.sendText();
 				}
 			});
 			
 			$('#tint').append(this.element);
 			
-			var that = this;
+			
 			this.element.draggable({handle: '.chatwindow-title',
 				stop: function(event, ui){
 					that.storePositionSize();
