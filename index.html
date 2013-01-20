@@ -8,6 +8,7 @@
 	<script src="https://raw.github.com/furf/jquery-ui-touch-punch/master/jquery.ui.touch-punch.min.js"></script>
 	<script src="/ejs.js" type="text/javascript"></script>
 	<script src="/jquery.cookie.js" type="text/javascript"></script>
+	<script src="/emoticons.js" type="text/javascript"></script>
 	<script src="/socket.io/socket.io.js"></script>
 	<style type="text/css">
 		.chatwindow {
@@ -380,11 +381,19 @@
 	var nick = '';
 	var dialogs = {};
 	
+	function escapeHTML(text) {
+		return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	}
+	
+	function unescapeHTML(text) {
+		return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+	}
+	
 	function renderMessage(data) {
 		var message = data.message;
 		if (message && message != null) {
 		    // replace angle brackets
-			var messageSafe = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+			var messageSafe = escapeHTML(message);
 		
 			// clickable links
 			var urlPattern = new RegExp('\\b(https?://[^\\s]+)', 'g');
@@ -393,6 +402,18 @@
 				var link = linkMatches[i];
 				previewLink(link);
 			}
+			
+			// emoticons
+			var words = messageSafe.split(' ');
+			for (var i = 0; i < words.length; ++i) {
+				var word = words[i];
+				var emoticon = emoticonRegistry.emoticonMap[unescapeHTML(word)];
+				if (emoticon) {
+					words[i] = '<img src="emoticons/' + emoticon.image + '">';
+					break;
+				}
+			}
+			messageSafe = words.join(' ');
 			
 			messageSafe = messageSafe.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
 

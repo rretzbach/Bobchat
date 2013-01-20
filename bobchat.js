@@ -188,21 +188,21 @@ function mockAllMessages(client) {
 	
 	var mockChannel = function(channel) {
 		client.emit('join', channel, 'osti', 'message');
-		client.emit('names', channel, {'baku':'', 'osti':'', 'crd':''});
-		client.emit('topic', channel, 'topic', 'baku', 'message');
+		client.emit('names', channel, {'sisterofmercy':'', 'osti':'', 'crd':''});
+		client.emit('topic', channel, 'topic', 'sisterofmercy', 'message');
 		client.emit('join', channel, 'sister', 'message');
-		client.emit('part', channel, 'baku', 'reason', 'message');
+		client.emit('part', channel, 'sisterofmercy', 'reason', 'message');
 		client.emit('quit', 'crd', 'reason', [channel], 'message');
-		client.emit('notice', 'baku', channel, 'text', 'message');
-		client.emit('nick', 'sister', 'sisterofmercy', [channel], 'message');
-		client.emit('message#', 'sisterofmercy', channel, 'text <b>text</b> text http://text.de.vu/path/file.jpg', 'message', 'message');
-		client.emit('message#', 'sisterofmercy', channel, '>greentext', 'message', 'message');
-		client.emit('message#', 'sisterofmercy', channel, 'hey osti', 'message', 'message');
+		client.emit('notice', 'sisterofmercy', channel, 'text', 'message');
+		client.emit('nick', 'sister', 'baku', [channel], 'message');
+		client.emit('message#', 'baku', channel, 'text <b>text</b> text http://text.de.vu/path/file.jpg', 'message', 'message');
+		client.emit('message#', 'baku', channel, '>greentext', 'message', 'message');
+		client.emit('message#', 'baku', channel, 'hey osti *flausch*', 'message', 'message');
 		client.emit('message#', 'osti', channel, 'hey osti', 'message', 'message');
-		client.emit('raw', { prefix: 'sisterofmercy!sisterofmercy@sisterofmercy.users.network.net',
-			nick: 'sisterofmercy',
-			user: 'sisterofmercy',
-			host: 'sisterofmercy.users.network.net',
+		client.emit('raw', { prefix: 'baku!baku@baku.users.network.net',
+			nick: 'baku',
+			user: 'baku',
+			host: 'baku.users.network.net',
 			command: 'PRIVMSG',
 			rawCommand: 'PRIVMSG',
 			commandType: 'normal',
@@ -211,9 +211,9 @@ function mockAllMessages(client) {
 	}
 	mockChannel('#bobchat');
 
-	client.emit('notice', 'baku', 'osti', 'text', 'message');
-	client.emit('pm', 'baku', 'text', 'message');
-	client.emit('nick', 'baku', 'afku', [], 'message');
+	client.emit('notice', 'sisterofmercy', 'osti', 'text', 'message');
+	client.emit('pm', 'sisterofmercy', 'text', 'message');
+	client.emit('nick', 'sisterofmercy', 'afku', [], 'message');
 }
 
 function resendPreviousMessages(socket) {
