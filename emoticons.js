@@ -47,4 +47,4 @@ emoticonRegistry.add(new Emoticon(':P', [':P'], 'fluffy_emoticons_tongue.gif'));
 emoticonRegistry.add(new Emoticon(':rolleyes:', [':rolleyes',':rolleyes:'], 'fluffy_emoticons_rolleyes.gif'));
 emoticonRegistry.add(new Emoticon(':suizid:', [':suizid',':suicide',':suizid:',':suicide:'], 'fluffy_emoticons_suizid.gif'));
 emoticonRegistry.add(new Emoticon(":')", [":')"], 'fluffy_emoticons_happytears.gif'));
-emoticonRegistry.add(new Emoticon(":ugly:", [":ugly:"], 'uglygif'));
+emoticonRegistry.add(new Emoticon(":ugly:", [":ugly:"], 'ugly.gif'));
