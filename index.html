@@ -56,13 +56,17 @@
 			/* hint to keep the columns small */
 			width: 1px;
 			white-space: nowrap;
+		}
+		.timestamp {
 			padding-right: 1em;
 		}
 		.nick {
 			text-align: right;
+			padding-right: 0.5em;
 		}
 		.message {
 			word-break: break-all;
+			padding-left: 0.5em;
 		}
 		.nicklistcontainer {
 			/* hint to keep the columns small */
@@ -127,14 +131,182 @@
 			border-top-left-radius:1em;
 			border-top-right-radius:1em;
 		}
+		.chatwindow .chatwindow-msgtable {
+			border-collapse: collapse;
+		}
+		.chatwindow .chatwindow-msgtable tr td {
+			padding-top: 3px;
+			padding-bottom: 3px;
+		}
+		.chatwindow .chatwindow-msgtable tr td.nick {
+			border-right: 1px solid black;
+		}
 		.greentext {
 			color: #789922;
+		}
+		.highlight {
+			background-color: #f7f4db;
 		}
 	</style>
 </head>
 
 <script>
-	function storePositionSize(dialog) {
+	function DialogWindow(network, name, socket) {
+		this.network = network;
+		this.name = name;
+		this.id = this.network + '#' + this.name;
+		this.socket = socket;
+		this.element;
+		this.inputElement;
+		this.msgTableElement;
+		this.messageTableContainer ;
+		this.nicklist;
+		
+		this.sendText = function() {
+			var message = this.inputElement.val();
+			socket.emit('sendmessage', { to: this.name, message: message });
+			this.inputElement.val('');
+		};
+		
+		this.storePositionSize = function() {
+			var base = 'bobchat-layout';
+			var prefix = base + '-' + this.id + '-';
+			var defaultExpire = 365;
+			$.cookie(prefix + 'pos-top', this.element.css('top'), { expires: defaultExpire });
+			$.cookie(prefix + 'pos-left', this.element.css('left'), { expires: defaultExpire });
+			$.cookie(prefix + 'size-width', this.element.width(), { expires: defaultExpire });
+			$.cookie(prefix + 'size-height', this.element.height(), { expires: defaultExpire });
+		}
+	
+		this.restorePositionSize = function() {
+			var base = 'bobchat-layout';
+			var prefix = base + '-' + this.id + '-';
+			
+			var geometrics = {
+				postop: $.cookie(prefix + 'pos-top'),
+				posleft: $.cookie(prefix + 'pos-left'),
+				sizewidth: $.cookie(prefix + 'size-width'),
+				sizeheight: $.cookie(prefix + 'size-height'),
+			};
+			
+			if (geometrics.postop == null) {
+				geometrics = {
+					postop: 10,
+					posleft: 10,
+					sizewidth: 640,
+					sizeheight: 320,
+				};
+			}
+			
+			this.element.css('top', geometrics.postop);
+			this.element.css('left', geometrics.posleft);
+			this.element.width(geometrics.sizewidth);
+			this.element.height(geometrics.sizeheight);
+		}
+		
+		this.createElement = function() {
+			this.element = $('<div id="'+this.id+'" class="chatwindow">'+
+				'<div style="height: 100%;">'+
+					'<div class="chatwindow-title">'+this.name+'</div>'+
+					'<table class="nicklisttable">'+
+						'<tr>'+
+							'<td style="width: 100%;">'+
+								'<div class="chatwindow-msgtable-container">'+
+									'<table class="chatwindow-msgtable"/>'+
+								'</div>'+
+							'</td>'+
+							'<td class="nicklistcontainer">'+
+								'<ul class="nicklist"/>'+
+							'</td>' +
+						'</tr>'+
+					'</table>'+
+					'<input/>'+
+				'</div>'+
+			'</div>');
+			
+			this.nicklist = this.element.find('.nicklistcontainer ul');
+			this.messageTableContainer = this.element.find('.chatwindow-msgtable-container');
+			this.msgTableElement = this.element.find('.chatwindow-msgtable');
+			
+			this.inputElement = this.element.find('input');
+			
+			this.inputElement.find('button').click(function(){
+				this.sendText();
+			});
+			
+			this.inputElement.keyup(function(event) {
+				if (event.keyCode==13) {
+					this.sendText();
+				}
+			});
+			
+			$('#tint').append(this.element);
+			
+			var that = this;
+			this.element.draggable({handle: '.chatwindow-title',
+				stop: function(event, ui){
+					that.storePositionSize();
+				}
+			});
+			this.element.resizable({stop: function(event, ui){
+				that.storePositionSize();
+			}});
+			
+			this.restorePositionSize();
+			
+			return this.element;
+		}
+		
+		this.scrollDown = function() {
+			this.messageTableContainer[0].scrollTop = this.messageTableContainer[0].scrollHeight;
+		}
+		
+		this.isScrolledDown = function() {
+			var scrolledDown = true;
+			if (this.messageTableContainer.height()+this.messageTableContainer[0].scrollTop!=this.messageTableContainer[0].scrollHeight) {
+				scrolledDown = false;
+			}
+			return scrolledDown;
+		}
+		
+		this.addMessage = function(data, template, doRender) {
+			var willScroll = true;
+			if (!this.isScrolledDown()) {
+				willScroll = false;
+			}
+
+			if (doRender) {
+				data.message = renderMessage(data);
+			}
+			
+			var message = $(template.render(data));
+			this.msgTableElement.append(message);
+
+			if (data.message) {
+			// highlight
+			var highlight = /\bosti\b/;
+				if (data.message.match(highlight)) {
+					message.addClass('highlight');
+				}
+				
+				// greentext
+				if (data.message.indexOf(">") == 0 && data.message.indexOf(">>") != 0) {
+					message.find('.message').addClass('greentext');
+				}
+			}
+
+			if (willScroll) {
+				this.scrollDown();
+			}
+		}
+		
+		this.clear = function() {
+			this.msgTableElement.empty();
+			this.nicklist.empty();
+		}
+	}
+
+	function storePositionSizeOld(dialog) {
 		var base = 'bobchat-layout';
 		var id = dialog.attr('id');
 		var prefix = base + '-' + id + '-';
@@ -145,7 +317,7 @@
 		$.cookie(prefix + 'size-height', dialog.height(), { expires: defaultExpire });
 	}
 	
-	function restorePositionSize(dialog) {
+	function restorePositionSizeOld(dialog) {
 		var base = 'bobchat-layout';
 		var id = dialog.attr('id');
 		var prefix = base + '-' + id + '-';
@@ -172,58 +344,6 @@
 		dialog.height(geometrics.sizeheight);
 	}
 	
-	function createChatWindow(id, name, socket) {
-		var dialog = $('<div id="'+id+'" class="chatwindow">'+
-			'<div style="height: 100%;">'+
-				'<div class="chatwindow-title">'+name+'</div>'+
-				'<table class="nicklisttable">'+
-					'<tr>'+
-						'<td style="width: 100%;">'+
-							'<div class="chatwindow-msgtable-container">'+
-								'<table class="chatwindow-msgtable"/>'+
-							'</div>'+
-						'</td>'+
-						'<td class="nicklistcontainer">'+
-							'<ul class="nicklist"/>'+
-						'</td>' +
-					'</tr>'+
-				'</table>'+
-				'<input/>'+
-			'</div>'+
-		'</div>');
-
-		var sendText = function() {
-			var message = dialog.find('input').val();
-			socket.emit('sendmessage', { to: name, message: message });
-			dialog.find('input').val('');
-		};
-		
-		dialog.find('button').click(function(){
-			sendText();
-		});
-		
-		 dialog.find('input').keyup(function(event) {
-			if (event.keyCode==13) {
-				sendText();
-			}
-		});
-		
-		$('#tint').append(dialog);
-		
-		dialog.draggable({handle: '.chatwindow-title',
-			stop: function(event, ui){
-				storePositionSize(dialog);
-			}
-		});
-		dialog.resizable({stop: function(event, ui){
-			storePositionSize(dialog);
-		}});
-		
-		restorePositionSize(dialog);
-		
-		return dialog;
-	};
-	
 	function createPreviewWindow(id, name, socket) {
 		var dialog = $('<div id="'+id+'" class="chatwindow">'+
 			'<div style="position: absolute;top: 0;bottom: 0;left: 0;right: 0;">'+
@@ -239,22 +359,17 @@
 		$('#tint').append(dialog);
 		dialog.draggable({handle: ".chatwindow-title",
 			stop: function(event, ui){
-				storePositionSize(dialog);
+				storePositionSizeOld(dialog);
 			}
 		});
 		dialog.resizable({stop: function(event, ui){
-			storePositionSize(dialog);
+			storePositionSizeOld(dialog);
 		}});
 		
-		restorePositionSize(dialog);
+		restorePositionSizeOld(dialog);
 		
 		return dialog;
 	};
-	
-	function scrollDown(dialog) {
-		var container = dialog.find('.chatwindow-msgtable-container');
-		container.scrollTop(container[0].scrollHeight);
-	}
 	
 	function previewLink(link) {
 		if (link.match(new RegExp('(jpe?g)|(png)|(gif)$', 'i'))) {
@@ -262,10 +377,14 @@
 		}
 	}
 	
-	function renderMessage(message) {
+	var nick = '';
+	var dialogs = {};
+	
+	function renderMessage(data) {
+		var message = data.message;
 		if (message && message != null) {
-			// replace angle brackets
-			message = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+		    // replace angle brackets
+			var messageSafe = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 		
 			// clickable links
 			var urlPattern = new RegExp('\\b(https?://[^\\s]+)', 'g');
@@ -275,23 +394,18 @@
 				previewLink(link);
 			}
 			
-			message = message.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
-			
-			// greentext
-			if (message.indexOf(">") == 0 && message.indexOf(">>") != 0) {
-				message = '<span class="greentext">' + message + '</span>';
-			}
+			messageSafe = messageSafe.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
+
 		}
-		return message;
+		
+		return messageSafe;
 	}
-	
-	var nick = '';
-	var dialogs = {};
 	
 	function getDialog(name, socket) {
 		var dialog = dialogs[name];
 		if (!dialog) {
-			dialog = createChatWindow('irc.iz-smart.net#' + name, name, socket);
+			dialog = new DialogWindow('irc.iz-smart.net', name, socket);
+			dialog.createElement();
 			dialogs[name] = dialog;
 		}
 		return dialog;
@@ -302,40 +416,40 @@
 		
 		createPreviewWindow('preview', 'Preview', socket);
 
+		/*
+		socket.on('registered', function (data) {
+			nick = data.nick;
+		});
+		*/
+		
 		socket.on('resendmessages', function (data) {
-			// TODO clear all previous messages
+			for (var prop in dialogs) {
+				dialogs[prop].clear();
+			}
 		});
 
 		socket.on('message#', function (data) {
 			var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick"><%= nick %></td><td class="message"><%= message %></td></tr>'});
-			data.message = renderMessage(data.message);
-			dialog.find('.chatwindow-msgtable').append(template.render(data));			
-			scrollDown(dialog);
+			dialog.addMessage(data, template, true);
 		});
 		
 		socket.on('action', function (data) {
 			var dialog = getDialog(data.to, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= nick %> <%= message %></td></tr>'});
-			data.message = renderMessage(data.message);
-			dialog.find('.chatwindow-msgtable').append(template.render(data));			
-			scrollDown(dialog);
+			dialog.addMessage(data, template, true);
 		});
 		
 		socket.on('pm', function (data) {
 			var dialog = getDialog(data.target, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick"><%= nick %></td><td class="message"><%= message %></td></tr>'});
-			data.message = renderMessage(data.message);
-			dialog.find('.chatwindow-msgtable').append(template.render(data));
-			scrollDown(dialog);
+			dialog.addMessage(data, template, true);
 		});
 		
 		socket.on('notice', function (data) {
 			var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">/<%= nick %>/</td><td class="message"><%= message %></td></tr>'});
-			data.message = renderMessage(data.message);
-			dialog.find('.chatwindow-msgtable').append(template.render(data));
-			scrollDown(dialog);
+			dialog.addMessage(data, template, true);
 		});
 		
 		// TODO show private notices as nag bubble
@@ -353,23 +467,20 @@
 				var channel = data.channels[i];
 				var dialog = getDialog(channel, socket);
 				var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= oldnick %> is now known as <%= newnick %></td></tr>'});
-				dialog.find('.chatwindow-msgtable').append(template.render(data));
-				scrollDown(dialog);
+				dialog.addMessage(data, template, false);
 			}
 		});
 		
 		socket.on('join', function (data) {
 			var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= nick %> joined <%= channel %></td></tr>'});
-			dialog.find('.chatwindow-msgtable').append(template.render(data));
-			scrollDown(dialog);
+			dialog.addMessage(data, template, false);
 		});
 		
 		socket.on('part', function (data) {
 			var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= nick %> parted <%= channel %></td></tr>'});
-			dialog.find('.chatwindow-msgtable').append(template.render(data));
-			scrollDown(dialog);
+			dialog.addMessage(data, template, false);
 		});
 		
 		socket.on('quit', function (data) {
@@ -377,15 +488,14 @@
 				var channel = data.channels[i];
 				var dialog = dialogs[channel];
 				var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= nick %> has quit (<%= reason %>)</td></tr>'});
-				dialog.find('.chatwindow-msgtable').append(template.render(data));
-				scrollDown(dialog);
+				dialog.addMessage(data, template, false);
 			}
 		});
 		
 		socket.on('names', function (data) {
 		    var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<ul><% for (var key in nicks) { %><li class="nicklistitem"><%= nicks[key] + key %></li><% } %></ul>'});
-			dialog.find('.nicklistcontainer ul').replaceWith(template.render(data));
+			dialog.nicklist.replaceWith(template.render(data));
 		});
 		
 		socket.on('showdebugcontrols', function (data) {

@@ -51,6 +51,7 @@ if (process.argv[2] ==  'mock') {
 function ClientMessage(name, options) {
 	this.name = name;
 	this.options = options;
+	this.timestamp = new Date();
 }
 
 var clientmessages = [];
@@ -83,7 +84,22 @@ function wiretapMessage(name, options, sockets) {
 	if (!clientmessages) {
 		clientmessages = [];
 	}
+
 	clientmessages.push(msg);
+	
+	if (clientmessages.length >= 2) {
+		var before = clientmessages[clientmessages.length-2].timestamp;
+		var last = clientmessages[clientmessages.length-1].timestamp;
+		if (before.getDay() != last.getDay() || before.getMonth() != last.getDay() || before.getYear() != last.getYear()) {
+			var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+			var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+			var timestamp = getTime();
+			var weekday = days[timestamp.getDay()];
+			var month = months[timestamp.getMonth()];
+			var text = 'it is now '+weekday+', '+timestamp.getDate()+' '+month+' '+timestamp.getFullYear();
+			wiretapMessage('daychange', {timestamp: timestamp, text: text}, sockets);
+		}
+	}
 
 	for (var i = 0; i < sockets.length; ++i) {
 		var socket = sockets[i];
@@ -180,6 +196,9 @@ function mockAllMessages(client) {
 		client.emit('notice', 'baku', channel, 'text', 'message');
 		client.emit('nick', 'sister', 'sisterofmercy', [channel], 'message');
 		client.emit('message#', 'sisterofmercy', channel, 'text <b>text</b> text http://text.de.vu/path/file.jpg', 'message', 'message');
+		client.emit('message#', 'sisterofmercy', channel, '>greentext', 'message', 'message');
+		client.emit('message#', 'sisterofmercy', channel, 'hey osti', 'message', 'message');
+		client.emit('message#', 'osti', channel, 'hey osti', 'message', 'message');
 		client.emit('raw', { prefix: 'sisterofmercy!sisterofmercy@sisterofmercy.users.network.net',
 			nick: 'sisterofmercy',
 			user: 'sisterofmercy',
