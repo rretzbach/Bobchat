@@ -286,7 +286,7 @@
 
 			if (data.message) {
 			// highlight
-			var highlight = /\bosti\b/;
+			var highlight = /\b(?:osti|Ostwind)\b/i;
 				if (data.message.match(highlight)) {
 					message.addClass('highlight');
 				}
@@ -307,50 +307,91 @@
 			this.nicklist.empty();
 		}
 	}
-
-	function storePositionSizeOld(dialog) {
-		var base = 'bobchat-layout';
-		var id = dialog.attr('id');
-		var prefix = base + '-' + id + '-';
-		var defaultExpire = 365;
-		$.cookie(prefix + 'pos-top', dialog.css('top'), { expires: defaultExpire });
-		$.cookie(prefix + 'pos-left', dialog.css('left'), { expires: defaultExpire });
-		$.cookie(prefix + 'size-width', dialog.width(), { expires: defaultExpire });
-		$.cookie(prefix + 'size-height', dialog.height(), { expires: defaultExpire });
+	
+	function PreviewWindowEntry(link, target, timestamp, nick, message) {
+		this.link      = link     ;
+		this.target    = target   ;
+		this.timestamp = timestamp;
+		this.nick      = nick     ;
+		this.message   = message  ;
 	}
 	
-	function restorePositionSizeOld(dialog) {
-		var base = 'bobchat-layout';
-		var id = dialog.attr('id');
-		var prefix = base + '-' + id + '-';
-		
-		var geometrics = {
-			postop: $.cookie(prefix + 'pos-top'),
-			posleft: $.cookie(prefix + 'pos-left'),
-			sizewidth: $.cookie(prefix + 'size-width'),
-			sizeheight: $.cookie(prefix + 'size-height'),
-		};
-		
-		if (geometrics.postop == null) {
-			geometrics = {
-				postop: 10,
-				posleft: 10,
-				sizewidth: 640,
-				sizeheight: 320,
+	function PreviewWindow() {	
+		this.storePositionSize = function() {
+			var base = 'bobchat-layout';
+			var prefix = base + '-' + this.id + '-';
+			var defaultExpire = 365;
+			$.cookie(prefix + 'pos-top', this.element.css('top'), { expires: defaultExpire });
+			$.cookie(prefix + 'pos-left', this.element.css('left'), { expires: defaultExpire });
+			$.cookie(prefix + 'size-width', this.element.width(), { expires: defaultExpire });
+			$.cookie(prefix + 'size-height', this.element.height(), { expires: defaultExpire });
+		}
+	
+		this.restorePositionSize = function() {
+			var base = 'bobchat-layout';
+			var prefix = base + '-' + this.id + '-';
+			
+			var geometrics = {
+				postop: $.cookie(prefix + 'pos-top'),
+				posleft: $.cookie(prefix + 'pos-left'),
+				sizewidth: $.cookie(prefix + 'size-width'),
+				sizeheight: $.cookie(prefix + 'size-height'),
 			};
+			
+			if (geometrics.postop == null) {
+				geometrics = {
+					postop: 10,
+					posleft: 10,
+					sizewidth: 640,
+					sizeheight: 320,
+				};
+			}
+			
+			this.element.css('top', geometrics.postop);
+			this.element.css('left', geometrics.posleft);
+			this.element.width(geometrics.sizewidth);
+			this.element.height(geometrics.sizeheight);
 		}
 		
-		dialog.css('top', geometrics.postop);
-		dialog.css('left', geometrics.posleft);
-		dialog.width(geometrics.sizewidth);
-		dialog.height(geometrics.sizeheight);
-	}
-	
-	function createPreviewWindow(id, name, socket) {
-		var dialog = $('<div id="'+id+'" class="chatwindow">'+
+		this.previewLink = function(link, data) {
+			if (link.match(new RegExp('(jpe?g)|(png)|(gif)$', 'i'))) {
+				var target;
+				if (data.channel) {target = data.channel;}
+				if (!target) {target = 'query';}
+				
+				// store the last 10 links
+				this.links.push(new PreviewWindowEntry(link, target, data.timestamp, data.nick, data.message));
+				if (this.links.length > 10) {
+					this.links.splice(0, this.links.length - 10);
+				}
+				
+				this.switchImage(this.links.length - 1);
+			}
+		}
+		
+		this.switchImage = function(index) {
+			this.linkIndex = index;
+			var link = this.links[this.linkIndex];
+			var altText = 'posted by ' + link.nick + ' via ' + link.target + ' at ' + link.timestamp + ' by posting: \"'+escapeHTML(link.message)+'\"';
+			// set image source
+			this.imageElement.attr('src', link.link);
+			this.imageElement.attr('alt', altText);
+			this.imageElement.attr('title', altText);
+			
+			this.element.show();
+		}
+		
+		// constructor
+		
+		this.id = 'preview';
+		this.name = 'Preview';
+		this.links = [];
+		this.linkIndex = null;
+		
+		this.element = $('<div id="'+this.id+'" class="chatwindow">'+
 			'<div style="position: absolute;top: 0;bottom: 0;left: 0;right: 0;">'+
 				'<div class="chatwindow-title">'+
-					name+
+					this.name+
 				'</div>'+
 				'<div class="chatwindow-img-container">'+
 					'<img class="chatwindow-img"/>'+
@@ -358,36 +399,34 @@
 			'</div>'+
 		'</div>');
 		
-		$('#tint').append(dialog);
-		dialog.draggable({handle: ".chatwindow-title",
+		this.element.hide();
+		
+		this.imageElement = this.element.find('img');
+		
+		$('#tint').append(this.element);
+		var that = this;
+		this.element.draggable({handle: ".chatwindow-title",
 			stop: function(event, ui){
-				storePositionSizeOld(dialog);
+				that.storePositionSize();
 			}
 		});
-		dialog.resizable({stop: function(event, ui){
-			storePositionSizeOld(dialog);
+		this.element.resizable({stop: function(event, ui){
+			that.storePositionSize();
 		}});
 		
-		restorePositionSizeOld(dialog);
-		
-		return dialog;
-	};
-	
-	function previewLink(link) {
-		if (link.match(new RegExp('(jpe?g)|(png)|(gif)$', 'i'))) {
-			$('#preview img').attr('src', link);
-		}
+		this.restorePositionSize();
 	}
 	
 	var nick = '';
 	var dialogs = {};
+	var previewWindow;
 	
 	function escapeHTML(text) {
-		return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+		return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&#34;");
 	}
 	
 	function unescapeHTML(text) {
-		return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+		return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#34;/g, '"');
 	}
 	
 	function renderMessage(data) {
@@ -401,7 +440,7 @@
 			var linkMatches = message.match(urlPattern);
 			for (var i = 0; i < (linkMatches != null ? linkMatches.length : 0); ++i) {
 				var link = linkMatches[i];
-				previewLink(link);
+				getPreviewWindow().previewLink(link, data);
 			}
 			
 			// emoticons
@@ -415,6 +454,7 @@
 			}
 			messageSafe = words.join(' ');
 			
+			// clickable links
 			messageSafe = messageSafe.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
 
 		}
@@ -431,11 +471,16 @@
 		}
 		return dialog;
 	}
+	
+	function getPreviewWindow(name, socket) {
+		if (!previewWindow) {
+			previewWindow = new PreviewWindow('irc.iz-smart.net', name, socket);
+		}
+		return previewWindow;
+	}
 
 	$(document).ready(function() {
 		var socket = io.connect('http://' + location.host);
-		
-		createPreviewWindow('preview', 'Preview', socket);
 
 		/*
 		socket.on('registered', function (data) {
