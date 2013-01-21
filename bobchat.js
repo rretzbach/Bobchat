@@ -5,6 +5,10 @@ function padStr(i) {
 
 function getTime() {
 	var now = new Date();
+	return getTimeStr(now);
+}
+
+function getTimeStr(now) {
 	var timestamp = padStr(now.getHours()) + ':' +
 			  padStr(now.getMinutes()) + ':' +
 			  padStr(now.getSeconds());
@@ -86,20 +90,22 @@ function wiretapMessage(name, options, sockets) {
 	}
 
 	clientmessages.push(msg);
-	
+	/*
 	if (clientmessages.length >= 2) {
 		var before = clientmessages[clientmessages.length-2].timestamp;
 		var last = clientmessages[clientmessages.length-1].timestamp;
 		if (before.getDay() != last.getDay() || before.getMonth() != last.getDay() || before.getYear() != last.getYear()) {
 			var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 			var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-			var timestamp = getTime();
+			var timestamp = new Date();
+			var timestampStr = getTimeStr(timestamp);
 			var weekday = days[timestamp.getDay()];
 			var month = months[timestamp.getMonth()];
 			var text = 'it is now '+weekday+', '+timestamp.getDate()+' '+month+' '+timestamp.getFullYear();
-			wiretapMessage('daychange', {timestamp: timestamp, text: text}, sockets);
+			wiretapMessage('daychange', {timestamp: timestampStr, text: text}, sockets);
 		}
 	}
+	*/
 
 	for (var i = 0; i < sockets.length; ++i) {
 		var socket = sockets[i];

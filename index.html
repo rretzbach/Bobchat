@@ -161,7 +161,7 @@
 		this.inputElement;
 		this.msgTableElement;
 		this.messageTableContainer ;
-		this.nicklist;
+		this.nicklistcontainer;
 		
 		this.sendText = function() {
 			var message = this.inputElement.val();
@@ -226,7 +226,7 @@
 			'</div>');
 			
 			var that = this;
-			this.nicklist = this.element.find('.nicklistcontainer ul');
+			this.nicklistcontainer = this.element.find('.nicklistcontainer');
 			this.messageTableContainer = this.element.find('.chatwindow-msgtable-container');
 			this.msgTableElement = this.element.find('.chatwindow-msgtable');
 			
@@ -516,7 +516,7 @@
 		socket.on('names', function (data) {
 		    var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<ul><% for (var key in nicks) { %><li class="nicklistitem"><%= nicks[key] + key %></li><% } %></ul>'});
-			dialog.nicklist.replaceWith(template.render(data));
+			dialog.nicklistcontainer.html(template.render(data));
 		});
 		
 		socket.on('showdebugcontrols', function (data) {
