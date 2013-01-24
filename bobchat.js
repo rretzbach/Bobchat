@@ -70,6 +70,8 @@ var client = new irc.Client(config.network, config.nick, {
 	username: config.username,
 	realName: config.realName,
 	password: config.password,
+	retryDelay: 5000,
+	showErrors: true,
 });
 
 // send a pong every 5min to cause a close connection event if no internet connectivity is available, which will trigger a reconnect
@@ -122,6 +124,12 @@ function registerClientListener(client, sockets) {
 	autoRegister(sockets, client, 'registered', function (message) {
 	    wiretapMessage('registered', {nick: client.nick}, sockets);
 		console.log('Connected to irc server');
+	});
+	autoRegister(sockets, client, 'netError', function (exception) {
+	    wiretapMessage('netError', {exception: exception}, sockets);
+	});
+	autoRegister(sockets, client, 'abort', function (retryCount) {
+	    wiretapMessage('abort', {retryCount: retryCount}, sockets);
 	});
 	autoRegister(sockets, client, 'names', function (channel, nicks) {
 		names[channel] = nicks;
