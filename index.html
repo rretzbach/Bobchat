@@ -452,7 +452,7 @@
 				var word = words[i];
 				var emoticon = emoticonRegistry.emoticonMap[unescapeHTML(word)];
 				if (emoticon) {
-					words[i] = '<img src="emoticons/' + emoticon.image + '" alt="'+emoticon.name+'" height="'+emoticon.height+'">';
+					words[i] = '<img src="emoticons/' + emoticon.image + '" alt="'+emoticon.name+'" height="'+emoticon.height+'px">';
 				}
 			}
 			messageSafe = words.join(' ');
