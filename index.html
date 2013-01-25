@@ -12,17 +12,20 @@
 	<script src="/socket.io/socket.io.js"></script>
 	<style type="text/css">
 		.chatwindow {
-			padding-bottom: 50px;
 			overflow: hidden;
 			position: absolute;
 		}
 		.chatwindow .chatwindow-msgtable-container {
+			bottom: 23px;
 			overflow: auto;
-			height: 100%;
+			position: absolute;
+			top: 26px;
+			width: 100%
 		}
 		.chatwindow .chatwindow-msgtable {
 			max-width:100%;
 			max-height:100%;
+			width: 100%;
 		}
 		.chatwindow .chatwindow-img-container {
 			overflow: auto;
@@ -47,10 +50,15 @@
 		.chatwindow .nicklisttable {
 			height: 100%;
 		}
+		.chatwindow .nicklisttable > tbody > tr > td {
+			vertical-align: top;
+		}
 		.chatwindow input {
+			border: medium none;
+			bottom: 0;
+			height: 21px;
 			position: absolute;
-			left: 0;
-			right: 13px;
+			width: 100%;
 		}
 		.timestamp, .nick {
 			vertical-align: top;
@@ -70,9 +78,7 @@
 			padding-left: 0.5em;
 		}
 		.nicklistcontainer {
-			/* hint to keep the columns small */
-			width: 1px;
-			vertical-align: top;
+			float: right;
 		}
 		.nicklistcontainer ul {
 			display: inline;
@@ -209,18 +215,13 @@
 			this.element = $('<div id="'+this.id+'" class="chatwindow">'+
 				'<div style="height: 100%;">'+
 					'<div class="chatwindow-title">'+this.name+'</div>'+
-					'<table class="nicklisttable">'+
-						'<tr>'+
-							'<td style="width: 100%;">'+
 								'<div class="chatwindow-msgtable-container">'+
 									'<table class="chatwindow-msgtable"/>'+
 								'</div>'+
 							'</td>'+
-							'<td class="nicklistcontainer">'+
+							'<div class="nicklistcontainer">'+
 								'<ul class="nicklist"/>'+
-							'</td>' +
-						'</tr>'+
-					'</table>'+
+							'</div>' +
 					'<input/>'+
 				'</div>'+
 			'</div>');
@@ -449,7 +450,7 @@
 				var word = words[i];
 				var emoticon = emoticonRegistry.emoticonMap[unescapeHTML(word)];
 				if (emoticon) {
-					words[i] = '<img src="emoticons/' + emoticon.image + '">';
+					words[i] = '<img src="emoticons/' + emoticon.image + '" alt="'+emoticon.name+'" height="'+emoticon.height+'">';
 				}
 			}
 			messageSafe = words.join(' ');
