@@ -268,7 +268,8 @@
 		
 		this.isScrolledDown = function() {
 			var scrolledDown = true;
-			if (this.messageTableContainer.height()+this.messageTableContainer[0].scrollTop!=this.messageTableContainer[0].scrollHeight) {
+			// 20px offset
+			if (this.messageTableContainer.height()+this.messageTableContainer[0].scrollTop < this.messageTableContainer[0].scrollHeight - 20) {
 				scrolledDown = false;
 			}
 			return scrolledDown;
