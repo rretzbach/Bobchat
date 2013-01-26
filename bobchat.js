@@ -52,6 +52,18 @@ if (process.argv[2] ==  'mock') {
 }
 
 // irc
+function User(nick, mode) {
+	this.nick = nick;
+	this.mode = mode;
+	
+	this.equals = function(other) {
+		if (this.nick.toLowerCase() === other.nick.toLowerCase()) {
+			return true;
+		}
+		return false;
+	};
+}
+
 function ClientMessage(name, options) {
 	this.name = name;
 	this.options = options;
@@ -83,6 +95,12 @@ client.addListener('error', function(message) {
     console.log('error: ', message);
 });
 
+function sendToAll(msg, sockets) {
+	for (var i = 0; i < sockets.length; ++i) {
+		sockets[i].emit(msg.name, msg.options);
+	}
+}
+
 // name is the bobchat event name
 function wiretapMessage(name, options, sockets) {
 	var msg = new ClientMessage(name, options);
@@ -109,10 +127,7 @@ function wiretapMessage(name, options, sockets) {
 	}
 	*/
 
-	for (var i = 0; i < sockets.length; ++i) {
-		var socket = sockets[i];
-		socket.emit(msg.name, msg.options);
-	}
+	sendToAll(msg, sockets);
 }
 
 // name is the node-irc event name
@@ -132,7 +147,10 @@ function registerClientListener(client, sockets) {
 	    wiretapMessage('abort', {retryCount: retryCount}, sockets);
 	});
 	autoRegister(sockets, client, 'names', function (channel, nicks) {
-		names[channel] = nicks;
+		names[channel] = {};
+		for (var nick in nicks) {
+			names[channel][nick.toLowerCase()] = new User(nick, nicks[nick]);
+		}
 		wiretapMessage('names', { channel: channel, nicks: names[channel] }, sockets);
 	});
 	autoRegister(sockets, client, 'topic', function (channel, topic, nick, message) {
@@ -142,19 +160,21 @@ function registerClientListener(client, sockets) {
 		if (!names[channel]) {
 			names[channel] = {};
 		}
-		names[channel][nick] = '';
+		if (!names[channel][nick.toLowerCase()]) {
+			names[channel][nick.toLowerCase()] = new User(nick, '');
+		}
 		wiretapMessage('join', { channel: channel, nick: nick, timestamp: getTime() }, sockets);
 		wiretapMessage('names', { channel: channel, nicks: names[channel] }, sockets);
 	});
 	autoRegister(sockets, client, 'part', function (channel, nick, reason, message) {
-		delete names[channel][nick];
+		delete names[channel][nick.toLowerCase()];
 		wiretapMessage('part', { channel: channel, nick: nick, reason: reason, timestamp: getTime() }, sockets);
 		wiretapMessage('names', { channel: channel, nicks: names[channel] }, sockets);
 	});
 	autoRegister(sockets, client, 'quit', function (nick, reason, channels, message) {
 		wiretapMessage('quit', { nick: nick, reason: reason, channels: channels, timestamp: getTime() }, sockets);
 		for (var i = 0; i < channels.length; ++i) {
-			delete names[channels[i]][nick];
+			delete names[channels[i]][nick.toLowerCase()];
 			wiretapMessage('names', { channel: channels[i], nicks: names[channels[i]] }, sockets);
 		}
 	});
@@ -173,10 +193,12 @@ function registerClientListener(client, sockets) {
 	});
 	autoRegister(sockets, client, 'nick', function (oldnick, newnick, channels, message) {
 		for (var i = 0; i < channels.length; ++i) {
-			var oldmod = names[channels[i]][oldnick];
-			delete names[channels[i]][oldnick];
-			names[channels[i]][newnick] = oldmod;
-			wiretapMessage('names', { channel: channels[i], nicks: names[channels[i]] }, sockets);
+			var oldUser = names[channels[i]][oldnick.toLowerCase()];
+			if (oldUser) {
+				names[channels[i]][newnick.toLowerCase()] = new User(newnick, oldUser.mode);
+				delete names[channels[i]][oldnick.toLowerCase()];
+				wiretapMessage('names', { channel: channels[i], nicks: names[channels[i]] }, sockets);
+			}
 		}
 		
 		wiretapMessage('nick', { oldnick: oldnick, newnick: newnick, channels: channels, message: message, timestamp: getTime() }, sockets);
@@ -187,11 +209,14 @@ function registerClientListener(client, sockets) {
 	});
 	
 	autoRegister(sockets, client, 'raw', function (message) {
-                if (message.args[1]) {
+        if (message.args[1]) {
 			var match = message.args[1].match(/^\u0001ACTION (.+)\u0001$/);
 			if (match) {
 				wiretapMessage('action', { nick: message.nick, to: message.args[0], timestamp: getTime(),message: match[1] }, sockets);
 			}
+		}
+		if (message.command == 'PING') {
+			sendToAll(new ClientMessage('ping', { timestamp: getTime() }), sockets);
 		}
 	});
 }
@@ -241,11 +266,27 @@ function resendPreviousMessages(socket) {
 	}
 }
 
-function executeCommand(name, args) {
+function executeCommand(name, args, target) {
 	if (name == 'msg') {
 		var target = args.match(/(\S+) (.+)/)[1];
 		var message = args.match(/(\S+) (.+)/)[2];
 		sendTextMessage(target, message);
+	} if (name == 'join') {
+		var channel = args.match(/(\S+)/)[1];
+		client.join(channel);
+	} if (name == 'part') {
+		var channel = args.match(/(\S+)/)[1];
+		client.part(channel);
+	} if (name == 'nick') {
+		var nick = args.match(/(\S+)/)[1];
+		client.send("NICK", nick);
+		client.emit('raw', {command: '001', args: [nick]});
+	} if (name == 'me') {
+		var message = args.match(/(.+)/)[1];
+		if (config.sendMessages) {
+			client.action(target, message);
+		}
+		wiretapMessage('action', { nick: client.nick, to: target, timestamp: getTime(), message: message }, clientsockets);
 	} else {
 		console.log('unknown command: ' + name + ' with args: ' + JSON.stringify(args));
 	}
@@ -284,7 +325,7 @@ io.sockets.on('connection', function (socket) {
 			// irc command
 			var command = data.message.match(/^\/(\w+)/)[1];
 			if (command) {
-				executeCommand(command, data.message.substr(1+command.length+1));
+				executeCommand(command, data.message.substr(1+command.length+1), data.to);
 			}
 		} else {
 			// text message
@@ -320,4 +361,3 @@ io.sockets.on('connection', function (socket) {
 registerClientListener(client, clientsockets);
 
 console.log('Client successfully started');
-

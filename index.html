@@ -288,9 +288,9 @@
 			var message = $(template.render(data));
 			this.msgTableElement.append(message);
 
-			if (data.message) {
-			// highlight
-			var highlight = /\b(?:osti|Ostwind)\b/i;
+			if ('string' == typeof data.message) {
+				// highlight
+				var highlight = /\b(?:osti|Ostwind)\b/i;
 				if (data.message.match(highlight)) {
 					message.addClass('highlight');
 				}
@@ -308,7 +308,7 @@
 		
 		this.clear = function() {
 			this.msgTableElement.empty();
-			this.nicklist.empty();
+			this.nicklistcontainer.empty();
 		}
 	}
 	
@@ -453,7 +453,7 @@
 				var word = words[i];
 				var emoticon = emoticonRegistry.emoticonMap[unescapeHTML(word)];
 				if (emoticon) {
-					words[i] = '<img src="emoticons/' + emoticon.image + '" alt="'+emoticon.name+'" height="'+emoticon.height+'px">';
+					words[i] = '<img src="emoticons/' + emoticon.image + '" title="'+emoticon.name+'" height="'+emoticon.height+'px">';
 				}
 			}
 			messageSafe = words.join(' ');
@@ -564,7 +564,7 @@
 		
 		socket.on('names', function (data) {
 		    var dialog = getDialog(data.channel, socket);
-			var template = new EJS({text: '<ul><% for (var key in nicks) { %><li class="nicklistitem"><%= nicks[key] + key %></li><% } %></ul>'});
+			var template = new EJS({text: '<ul><% for (var nick in nicks) { %><li class="nicklistitem"><%= nicks[nick].mode + nicks[nick].nick %></li><% } %></ul>'});
 			dialog.nicklistcontainer.html(template.render(data));
 		});
 		
