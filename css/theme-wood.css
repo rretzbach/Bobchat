@@ -1,0 +1,59 @@
+* {
+	font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+	font-size: small;
+}
+body {
+	margin: 0;
+	background: url('http://fc07.deviantart.net/fs71/i/2012/338/3/2/seamless_wood_tex_by_koncaliev-d5n0ph4.png');
+	/*background: -webkit-gradient(linear, left top, left bottom, from(#526069), to(#718693)) fixed;*/
+}
+#tint {
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background-color: rgba(0,0,0,.5);
+}
+.chatwindow {
+	color: #32414d;
+	background-color: #e9e9e9;
+	border-top-left-radius:1em;
+	border-top-right-radius:1em;
+	border-bottom-left-radius:0;
+	border-bottom-right-radius:0;
+	box-shadow: 2px 2px 15px 1px rgba(0, 0, 0, .5);
+}
+.nicklistcontainer ul li:hover {
+	color: white;
+	background: black;
+}
+.chatwindow-title {
+	position: relative;
+	left: 0;
+	right: 0;
+	text-align: center;
+	font-size: medium;
+	padding: 0.25em;
+	text-shadow: 1px 1px 1px #fff;
+	border-bottom: 1px solid gray;
+	background: #c9c9c9;
+	border-top-left-radius:1em;
+	border-top-right-radius:1em;
+}
+.chatwindow .chatwindow-msgtable {
+	border-collapse: collapse;
+}
+.chatwindow .chatwindow-msgtable tr td {
+	padding-top: 3px;
+	padding-bottom: 3px;
+}
+.chatwindow .chatwindow-msgtable tr td.nick {
+	border-right: 1px solid black;
+}
+.greentext {
+	color: #789922;
+}
+.highlight {
+	background-color: #f7f4db;
+}
