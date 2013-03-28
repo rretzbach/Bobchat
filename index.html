@@ -8,295 +8,20 @@
 	<script src="/lib/jquery.ui.touch-punch.min.js"></script>
 	<script src="/lib/ejs.js" type="text/javascript"></script>
 	<script src="/lib/jquery.cookie.js" type="text/javascript"></script>
-	<script src="/lib/emoticons.js" type="text/javascript"></script>
 	<script src="/socket.io/socket.io.js"></script>
+	<script src="/js/emoticons.js" type="text/javascript"></script>
+	<script src="/js/window.js" type="text/javascript"></script>
+	<script src="/js/preview.js" type="text/javascript"></script>
+	<script src="/js/dialog.js" type="text/javascript"></script>
+	<script src="/js/cookie_service.js" type="text/javascript"></script>
 	<link rel="stylesheet" href="/css/theme.css">
 	<link rel="stylesheet" href="/css/theme-wood.css">
 </head>
 
 <script>
-	function DialogWindow(network, name, socket) {
-		this.network = network;
-		this.name = name;
-		this.id = this.network + '#' + this.name;
-		this.socket = socket;
-		this.element;
-		this.inputElement;
-		this.msgTableElement;
-		this.messageTableContainer ;
-		this.nicklistcontainer;
-		
-		this.sendText = function() {
-			var message = this.inputElement.val();
-			socket.emit('sendmessage', { to: this.name, message: message });
-			this.inputElement.val('');
-		};
-		
-		this.storePositionSize = function() {
-			var base = 'bobchat-layout';
-			var prefix = base + '-' + this.id + '-';
-			var defaultExpire = 365;
-			$.cookie(prefix + 'pos-top', this.element.css('top'), { expires: defaultExpire });
-			$.cookie(prefix + 'pos-left', this.element.css('left'), { expires: defaultExpire });
-			$.cookie(prefix + 'size-width', this.element.width(), { expires: defaultExpire });
-			$.cookie(prefix + 'size-height', this.element.height(), { expires: defaultExpire });
-		}
-	
-		this.restorePositionSize = function() {
-			var base = 'bobchat-layout';
-			var prefix = base + '-' + this.id + '-';
-			
-			var geometrics = {
-				postop: $.cookie(prefix + 'pos-top'),
-				posleft: $.cookie(prefix + 'pos-left'),
-				sizewidth: $.cookie(prefix + 'size-width'),
-				sizeheight: $.cookie(prefix + 'size-height'),
-			};
-			
-			if (geometrics.postop == null) {
-				geometrics = {
-					postop: 10,
-					posleft: 10,
-					sizewidth: 640,
-					sizeheight: 320,
-				};
-			}
-			
-			this.element.css('top', geometrics.postop);
-			this.element.css('left', geometrics.posleft);
-			this.element.width(geometrics.sizewidth);
-			this.element.height(geometrics.sizeheight);
-		}
-		
-		this.createElement = function() {
-			this.element = $('<div id="'+this.id+'" class="chatwindow">'+
-				'<div style="height: 100%;">'+
-					'<div class="chatwindow-title">'+this.name+'</div>'+
-								'<div class="chatwindow-msgtable-container">'+
-									'<table class="chatwindow-msgtable"/>'+
-								'</div>'+
-							'</td>'+
-							'<div class="nicklistcontainer">'+
-								'<ul class="nicklist"/>'+
-							'</div>' +
-					'<input/>'+
-				'</div>'+
-			'</div>');
-			
-			var that = this;
-			this.nicklistcontainer = this.element.find('.nicklistcontainer');
-			this.messageTableContainer = this.element.find('.chatwindow-msgtable-container');
-			this.msgTableElement = this.element.find('.chatwindow-msgtable');
-			
-			this.inputElement = this.element.find('input');
-			
-			this.inputElement.find('button').click(function(){
-				that.sendText();
-			});
-			
-			this.inputElement.keyup(function(event) {
-				if (event.keyCode==13) {
-					that.sendText();
-				}
-			});
-			
-			$('#tint').append(this.element);
-			
-			
-			this.element.draggable({handle: '.chatwindow-title',
-				stop: function(event, ui){
-					that.storePositionSize();
-				}
-			});
-			this.element.resizable({stop: function(event, ui){
-				that.storePositionSize();
-			}});
-			
-			this.restorePositionSize();
-			
-			return this.element;
-		}
-		
-		this.scrollDown = function() {
-			this.messageTableContainer[0].scrollTop = this.messageTableContainer[0].scrollHeight;
-		}
-		
-		this.isScrolledDown = function() {
-			var scrolledDown = true;
-			// 20px offset
-			if (this.messageTableContainer.height()+this.messageTableContainer[0].scrollTop < this.messageTableContainer[0].scrollHeight - 20) {
-				scrolledDown = false;
-			}
-			return scrolledDown;
-		}
-		
-		this.addMessage = function(data, template, doRender) {
-			var willScroll = true;
-			if (!this.isScrolledDown()) {
-				willScroll = false;
-			}
-
-			if (doRender) {
-				data.message = renderMessage(data);
-			}
-			
-			var message = $(template.render(data));
-			this.msgTableElement.append(message);
-
-			if ('string' == typeof data.message) {
-				// highlight
-				var highlight = /\b(?:osti|Ostwind)\b/i;
-				if (data.message.match(highlight)) {
-					message.addClass('highlight');
-				}
-				
-				// greentext
-				if (data.message.indexOf(">") == 0 && data.message.indexOf(">>") != 0) {
-					message.find('.message').addClass('greentext');
-				}
-			}
-
-			if (willScroll) {
-				this.scrollDown();
-			}
-		}
-		
-		this.clear = function() {
-			this.msgTableElement.empty();
-			this.nicklistcontainer.empty();
-		}
-	}
-	
-	function PreviewWindowEntry(link, target, timestamp, nick, message) {
-		this.link      = link     ;
-		this.target    = target   ;
-		this.timestamp = timestamp;
-		this.nick      = nick     ;
-		this.message   = message  ;
-	}
-	
-	function PreviewWindow() {	
-		this.storePositionSize = function() {
-			var base = 'bobchat-layout';
-			var prefix = base + '-' + this.id + '-';
-			var defaultExpire = 365;
-			$.cookie(prefix + 'pos-top', this.element.css('top'), { expires: defaultExpire });
-			$.cookie(prefix + 'pos-left', this.element.css('left'), { expires: defaultExpire });
-			$.cookie(prefix + 'size-width', this.element.width(), { expires: defaultExpire });
-			$.cookie(prefix + 'size-height', this.element.height(), { expires: defaultExpire });
-		}
-	
-		this.restorePositionSize = function() {
-			var base = 'bobchat-layout';
-			var prefix = base + '-' + this.id + '-';
-			
-			var geometrics = {
-				postop: $.cookie(prefix + 'pos-top'),
-				posleft: $.cookie(prefix + 'pos-left'),
-				sizewidth: $.cookie(prefix + 'size-width'),
-				sizeheight: $.cookie(prefix + 'size-height'),
-			};
-			
-			if (geometrics.postop == null) {
-				geometrics = {
-					postop: 10,
-					posleft: 10,
-					sizewidth: 640,
-					sizeheight: 320,
-				};
-			}
-			
-			this.element.css('top', geometrics.postop);
-			this.element.css('left', geometrics.posleft);
-			this.element.width(geometrics.sizewidth);
-			this.element.height(geometrics.sizeheight);
-		}
-		
-		this.previewLink = function(link, data) {
-			if (link.match(new RegExp('(jpe?g)|(png)|(gif)$', 'i'))) {
-				var target;
-				if (data.channel) {target = data.channel;}
-				if (!target) {target = 'query';}
-				
-				// store the last 10 links
-				this.links.push(new PreviewWindowEntry(link, target, data.timestamp, data.nick, data.message));
-				if (this.links.length > 10) {
-					this.links.splice(0, this.links.length - 10);
-				}
-				
-				this.switchImage(this.links.length - 1);
-			}
-		}
-		
-		this.switchImage = function(index) {
-			if (index < 0) {
-				this.linkIndex = this.links.length - 1;
-			} else if (index >= this.links.length) {
-				this.linkIndex = 0;
-			} else {
-				this.linkIndex = Math.abs(index % this.links.length);
-			}
-
-			var link = this.links[this.linkIndex];
-			var altText = 'posted by ' + link.nick + ' via ' + link.target + ' at ' + link.timestamp + ' by posting: \"'+escapeHTML(link.message)+'\"';
-			// set image source
-			this.imageElement.attr('src', link.link);
-			this.imageElement.attr('alt', altText);
-			this.imageElement.attr('title', altText);
-			
-			this.element.show();
-		}
-
-		this.prevImage = function() {
-			this.switchImage(this.linkIndex - 1);	
-		}
-
-		this.nextImage = function() {
-			this.switchImage(this.linkIndex + 1);
-		}
-		
-		// constructor
-		
-		this.id = 'preview';
-		this.name = 'Preview';
-		this.links = [];
-		this.linkIndex = null;
-		
-		this.element = $('<div id="'+this.id+'" class="chatwindow">'+
-			'<div style="position: absolute;top: 0;bottom: 0;left: 0;right: 0;">'+
-				'<div class="chatwindow-title">'+
-					this.name+
-				'</div>'+
-				'<div class="chatwindow-img-container">'+
-					'<img class="chatwindow-img"/>'+
-				'</div>'+
-			'</div>'+
-		'</div>');
-		
-		this.element.hide();
-		
-		this.imageElement = this.element.find('img');
-		
-		$('#tint').append(this.element);
-		var that = this;
-		this.element.draggable({handle: ".chatwindow-title",
-			stop: function(event, ui){
-				that.storePositionSize();
-			}
-		});
-		this.element.resizable({stop: function(event, ui){
-			that.storePositionSize();
-		}});
-		
-		this.restorePositionSize();
-
-		this.imageElement.click(function(){
-			that.prevImage();
-		});
-	}
-	
 	var nick = '';
 	var dialogs = {};
+	var cookie_service = cookie_service();
 	var previewWindow;
 	
 	function escapeHTML(text) {
@@ -334,7 +59,6 @@
 			
 			// clickable links
 			messageSafe = messageSafe.replace( urlPattern, '<a href="$1" target="_blank">$1</a>' );
-
 		}
 		
 		return messageSafe;
@@ -343,8 +67,8 @@
 	function getDialog(name, socket) {
 		var dialog = dialogs[name];
 		if (!dialog) {
-			dialog = new DialogWindow('irc.iz-smart.net', name, socket);
-			dialog.createElement();
+			dialog = dialog_presenter(dialog_model('irc.iz-smart.net', name), dialog_view(), cookie_service, socket);
+			dialog.init();
 			dialogs[name] = dialog;
 		}
 		return dialog;
@@ -352,7 +76,8 @@
 	
 	function getPreviewWindow(name, socket) {
 		if (!previewWindow) {
-			previewWindow = new PreviewWindow('irc.iz-smart.net', name, socket);
+			previewWindow = preview_presenter(preview_model('preview', 'Preview', 10), preview_view(), cookie_service);
+			previewWindow.init();
 		}
 		return previewWindow;
 	}
@@ -439,7 +164,7 @@
 		socket.on('names', function (data) {
 		    var dialog = getDialog(data.channel, socket);
 			var template = new EJS({text: '<ul><% for (var nick in nicks) { %><li class="nicklistitem"><%= nicks[nick].mode + nicks[nick].nick %></li><% } %></ul>'});
-			dialog.nicklistcontainer.html(template.render(data));
+			dialog.nicklistcontainer().html(template.render(data));
 		});
 		
 		socket.on('showdebugcontrols', function (data) {
