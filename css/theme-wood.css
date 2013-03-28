@@ -4,7 +4,7 @@
 }
 body {
 	margin: 0;
-	background: url('http://fc07.deviantart.net/fs71/i/2012/338/3/2/seamless_wood_tex_by_koncaliev-d5n0ph4.png');
+	background: url('/img/seamless_wood_tex_by_koncaliev-d5n0ph4.png');
 	/*background: -webkit-gradient(linear, left top, left bottom, from(#526069), to(#718693)) fixed;*/
 }
 #tint {
