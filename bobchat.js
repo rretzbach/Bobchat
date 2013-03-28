@@ -109,23 +109,36 @@ function wiretapMessage(name, options, sockets) {
 		clientmessages = [];
 	}
 
-	clientmessages.push(msg);
-	/*
-	if (clientmessages.length >= 2) {
-		var before = clientmessages[clientmessages.length-2].timestamp;
-		var last = clientmessages[clientmessages.length-1].timestamp;
-		if (before.getDay() != last.getDay() || before.getMonth() != last.getDay() || before.getYear() != last.getYear()) {
+	if (clientmessages.length > 0) {
+		var before = clientmessages[clientmessages.length-1].timestamp;
+
+		/*/ only for testing
+		if (msg.options.message == 'newdate') {
+			var fakenewday = new Date(new Date().getTime()+1000*60*60*24);
+			msg.timestamp = fakenewday;
+			msg.options.timestamp = getTimeStr(fakenewday);
+		}
+		/**/
+		var last = msg.timestamp;
+		if (before.getDay() != last.getDay() || before.getMonth() != last.getMonth() || before.getYear() != last.getYear()) {
 			var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 			var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-			var timestamp = new Date();
+			var timestamp = last;
 			var timestampStr = getTimeStr(timestamp);
 			var weekday = days[timestamp.getDay()];
 			var month = months[timestamp.getMonth()];
 			var text = 'it is now '+weekday+', '+timestamp.getDate()+' '+month+' '+timestamp.getFullYear();
-			wiretapMessage('daychange', {timestamp: timestampStr, text: text}, sockets);
+
+			var daychange_msg = new ClientMessage('daychange', {timestamp: timestampStr, text: text});
+			clientmessages.push(daychange_msg);
+
+			sendToAll(daychange_msg, sockets);
 		}
 	}
-	*/
+
+	clientmessages.push(msg);
+
+	
 
 	sendToAll(msg, sockets);
 }
@@ -238,6 +251,7 @@ function mockAllMessages(client) {
 		client.emit('message#', 'baku', channel, '>greentext', 'message', 'message');
 		client.emit('message#', 'baku', channel, 'hey osti *flausch*', 'message', 'message');
 		client.emit('message#', 'osti', channel, 'hey osti', 'message', 'message');
+		client.emit('message#', 'osti', channel, 'newdate', 'message', 'message');
 		client.emit('raw', { prefix: 'baku!baku@baku.users.network.net',
 			nick: 'baku',
 			user: 'baku',

@@ -167,6 +167,14 @@
 			dialog.nicklistcontainer().html(template.render(data));
 		});
 		
+		socket.on('daychange', function (data) {
+			for (var prop in dialogs) {
+				var dialog = dialogs[prop];
+				var template = new EJS({text: '<tr><td class="timestamp"><%= timestamp %></td><td class="nick">*</td><td class="message"><%= text %></td></tr>'});
+				dialog.addMessage(data, template, false);
+			}
+		});
+		
 		socket.on('showdebugcontrols', function (data) {
 			$('.initially-hidden').css('display', 'inherit')
 		});
